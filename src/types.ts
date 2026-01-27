@@ -14,6 +14,7 @@ export interface OAuth2PluginOptions {
   serverURL: string
   successRedirect: string
   failureRedirect: string
+  logoutRedirect?: string
   userCollectionSlug?: string
   enabled?: boolean
 }
