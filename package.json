@@ -1,6 +1,6 @@
 {
   "name": "payload-oauth2-oidc",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Flexible OIDC and OAuth2 integration for Payload CMS v3",
   "type": "module",
   "main": "./dist/index.cjs",
