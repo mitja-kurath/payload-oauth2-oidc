@@ -1,6 +1,6 @@
 {
   "name": "payload-oauth2-oidc",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Flexible OIDC and OAuth2 integration for Payload CMS v3",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -35,7 +35,7 @@
     "jsonwebtoken": "^9.0.3",
     "openid-client": "^6.8.1"
   },
-    "repository": {
+  "repository": {
     "type": "git",
     "url": "git+https://github.com/mitja-kurath/payload-oauth2.git"
   },
