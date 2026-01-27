@@ -20,9 +20,9 @@ Unlike other plugins that try to "hack" Payload's internal authentication, this 
 ## Installation
 
 ```bash
-pnpm add payload-oauth2 openid-client jsonwebtoken
+pnpm add payload-oauth2-oidc openid-client jsonwebtoken
 # or
-npm install payload-oauth2 openid-client jsonwebtoken
+npm install payload-oauth2-oidc openid-client jsonwebtoken
 ```
 
 ## Quick Start
@@ -30,7 +30,7 @@ npm install payload-oauth2 openid-client jsonwebtoken
 Register the plugin in your `payload.config.ts`:
 
 ```typescript
-import { oAuth2 } from 'payload-oauth2'
+import { oAuth2 } from 'payload-oauth2-oidc'
 import { buildConfig } from 'payload'
 
 export default buildConfig({

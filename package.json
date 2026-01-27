@@ -1,6 +1,7 @@
 {
-  "name": "payload-oauth2",
+  "name": "payload-oauth2-oidc",
   "version": "1.0.0",
+  "description": "Flexible OIDC and OAuth2 integration for Payload CMS v3",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -13,23 +14,41 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch --clean"
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --minify --external payload",
+    "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
-    "openid-client": "^6.0.0",
     "payload": "^3.0.0"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
-    "payload": "^3.72.0",
-    "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "@types/jsonwebtoken": "^9.0.0",
+    "payload": "^3.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
   },
   "dependencies": {
-    "jsonwebtoken": "^9.0.3"
-  }
+    "jsonwebtoken": "^9.0.3",
+    "openid-client": "^6.8.1"
+  },
+    "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mitja-kurath/payload-oauth2.git"
+  },
+  "keywords": [
+    "payload",
+    "payload-plugin",
+    "oauth2",
+    "oidc",
+    "authentication"
+  ],
+  "author": {
+    "name": "Mitja Kurath",
+    "email": "hi@mitjakurath.ch"
+  },
+  "license": "MIT"
 }
