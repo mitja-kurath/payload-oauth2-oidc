@@ -1,53 +1,64 @@
-# Payload OAuth2 Plugin
+# Payload OAuth2 Plugin (OIDC)
 
-A lightweight, flexible OpenID Connect (OIDC) and OAuth2 integration for Payload CMS. 
+A professional, lightweight, and highly flexible OpenID Connect (OIDC) and OAuth2 integration for **Payload CMS v3**. 
 
-> **Disclaimer:** This plugin supports OAuth2 on a payload backend. This implementation is rushed and unpolished, but may be improved later on. Use it at your own risk in production environments.
+Unlike other plugins that try to "hack" Payload's internal authentication, this plugin implements a **Native Custom Auth Strategy**. It allows you to identify users via secure, signed cookies while working perfectly with Payload's existing access control and `req.user` systems.
 
-## Overview
+## Key Features
 
-This plugin allows you to integrate any OIDC-compliant identity provider (Google, GitHub, Keycloak, Auth0, Okta, etc.) into your Payload CMS application. It handles the full authentication flow, including PKCE for enhanced security, and automatically manages user creation and account linking.
-
-## Features
-
-- **Generic OIDC Support:** Works with any provider that supports discovery endpoints.
-- **PKCE Enabled:** Modern security standards using Proof Key for Code Exchange.
-- **Automatic User Provisioning:** Automatically creates users in your Payload `users` collection upon successful login.
-- **Account Linking:** Smartly links OAuth identities to existing accounts via email or unique provider IDs (`sub`).
-- **Custom User Mapping:** A flexible `userMapper` function lets you decide how claims from your provider (like `picture` or `username`) are saved to Payload fields.
-- **Payload Native:** Implemented as a custom Auth Strategy, meaning it integrates with Payload's `req.user` and access control systems.
+- **Payload v3 Native:** Specifically architected for the Next.js / React Server Components environment of Payload 3.x.
+- **Generic OIDC Support:** Works with any OIDC-compliant provider (Google, GitHub, Keycloak, Auth0, and **Hitobito/MiData**).
+- **Multi-Strategy:** Configure multiple identity providers (e.g., "Login with Google" AND "Login with MiData") simultaneously.
+- **User Provisioning & Sync:** 
+  - **Auto-Registration:** Creates new users on their first login.
+  - **Registration Control:** Toggle `allowRegistration` to restrict access to pre-existing users only.
+  - **Automatic Profile Sync:** Updates user data (roles, names, etc.) in your database on every login.
+- **Smart Account Linking:** Automatically matches OAuth identities to existing Payload accounts via email or Provider ID (`sub`).
+- **Modern Security:** Built-in PKCE (Proof Key for Code Exchange) support and secure, `HttpOnly` cookie session management.
+- **Built-in Logout:** A global logout endpoint that clears session cookies across the application.
 
 ## Installation
 
 ```bash
-# This is currently a manual installation. 
-# Copy the plugin files into your project.
-# Or use a Tool like Yalc
+pnpm add payload-oauth2 openid-client jsonwebtoken
+# or
+npm install payload-oauth2 openid-client jsonwebtoken
 ```
 
 ## Quick Start
 
+Register the plugin in your `payload.config.ts`:
+
 ```typescript
-import { oAuth2 } from './plugins/oauth2'
-import { buildConfig } from 'payload/config'
+import { oAuth2 } from 'payload-oauth2'
+import { buildConfig } from 'payload'
 
 export default buildConfig({
+  // ... collections, etc.
   plugins: [
     oAuth2({
-      serverURL: process.env.PAYLOAD_PUBLIC_SERVER_URL,
-      successRedirect: '/admin',
-      failureRedirect: '/login',
+      enabled: true,
+      serverURL: process.env.NEXT_PUBLIC_SERVER_URL!, // e.g., http://localhost:3000
+      successRedirect: `${process.env.FRONTEND_URL}/dashboard`,
+      failureRedirect: `${process.env.FRONTEND_URL}/login?error=failed`,
+      logoutRedirect: `${process.env.FRONTEND_URL}/`,
+      allowRegistration: true, // Set to false for "Invite-only" systems
       strategies: [
         {
-          name: 'google',
-          issuerUrl: 'https://accounts.google.com',
-          clientId: process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          scopes: ['openid', 'profile', 'email'],
-          userMapper: (userinfo) => ({
-            name: userinfo.name,
-            avatarUrl: userinfo.picture,
-          }),
+          name: 'midata',
+          issuerUrl: 'https://db.scout.ch',
+          clientId: process.env.MIDATA_CLIENT_ID!,
+          clientSecret: process.env.MIDATA_CLIENT_SECRET!,
+          scopes: ['openid', 'email', 'profile', 'with_roles'],
+          // Transform OIDC claims to Payload user fields
+          userMapper: async (userinfo) => {
+            const roles = (userinfo['roles'] as any[]) || []
+            return {
+              role: roles.some(r => r.name.includes('Leiter')) ? 'leader' : 'member',
+              firstName: userinfo.given_name,
+              lastName: userinfo.family_name,
+            }
+          },
         },
       ],
     }),
@@ -55,25 +66,58 @@ export default buildConfig({
 })
 ```
 
-## How it Works
+## Plugin Options
 
-1. **Login:** Navigate to `/api/oauth/{strategy-name}/login`.
-2. **Redirect:** The plugin generates a PKCE challenge and redirects the user to the provider.
-3. **Callback:** The provider redirects back to `/api/oauth/{strategy-name}/callback`.
-4. **Validation:** The plugin exchanges the code for tokens and fetches user info.
-5. **Sync:** The plugin finds or creates a user in Payload and sets a secure JWT cookie.
+| Option | Type | Description |
+| :--- | :--- | :--- |
+| `strategies` | `OAuthStrategy[]` | Array of OIDC provider configurations. |
+| `serverURL` | `string` | The base URL of your Payload backend. |
+| `successRedirect` | `string` | URL to redirect users to after a successful login. |
+| `failureRedirect` | `string` | URL to redirect users to if an error occurs. |
+| `logoutRedirect` | `string` | URL to redirect users to after logging out. |
+| `allowRegistration` | `boolean` | If `false`, only users already in the DB can log in. Default: `true`. |
+| `userCollectionSlug`| `string` | The slug of your auth collection. Default: `'users'`. |
 
-## Planned Improvements (Roadmap)
+## REST API Endpoints
 
-While the current version is functional, the following features are planned for future releases:
+The plugin automatically exposes the following endpoints:
 
-- **State Management:** Move temporary PKCE/State data from cookies to a more robust server-side store or encrypted session.
-- **Standardized Logout:** A dedicated endpoint to clear OAuth sessions and provider cookies simultaneously.
-- **Refresh Token Support:** Implementation of offline access to keep users logged in longer without re-authentication.
-- **Pre-configured Strategies:** "One-click" setups for popular providers like GitHub, Google, and Apple to reduce boilerplate.
-- **Better UI Integration:** Built-in buttons for the Payload Admin UI login page.
-- **Signed Cookies:** Move from plain-text cookies to signed/encrypted cookies for the transition state.
+- `GET /api/oauth/:strategy/login` - Redirects the user to the OIDC provider.
+- `GET /api/oauth/:strategy/callback` - Internal handler for the OAuth handshake.
+- `GET /api/oauth/logout` - Clears the session and redirects to `logoutRedirect`.
+
+## Frontend Integration
+
+When calling Payload APIs from your frontend, you must include credentials to send the `oauth-token` cookie.
+
+### Fetch Example
+```javascript
+const response = await fetch('http://localhost:3000/api/users/me', {
+  method: 'GET',
+  credentials: 'include', // CRITICAL: This sends the session cookie
+});
+const data = await response.json();
+console.log('User session:', data.user);
+```
+
+### Angular (HttpClient) Example
+```typescript
+this.http.get('/api/users/me', { withCredentials: true }).subscribe(...)
+```
+
+## Account Linking Architecture
+
+When a user logs in, the plugin follows this logic:
+1. Searches for a user with the same `oauthLinks.sub` (Provider ID).
+2. If not found, searches for a user with the same verified `email`.
+3. If found, it **links** the OAuth identity to that account and updates the profile.
+4. If not found and `allowRegistration` is `true`, it creates a new user document.
+
+## Technical Details
+
+- **Session Management:** Uses JWTs signed with your `PAYLOAD_SECRET` stored in an `HttpOnly`, `SameSite=Lax` cookie named `oauth-token`.
+- **Custom Strategy:** Registers an authentication strategy that Payload calls on every request to populate `req.user`.
 
 ## License
 
-MIT - See [LICENSE](LICENSE) for details.
+MIT - Developed by **Mitja Kurath**. Use freely in your projects!
