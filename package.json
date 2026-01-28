@@ -20,7 +20,8 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean --minify --external payload",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run"
   },
   "peerDependencies": {
     "payload": "^3.73.0" 
@@ -29,7 +30,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "payload": "^3.73.0",
     "tsup": "^8.5.1",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vite-tsconfig-paths": "^5.1.0",
+    "vitest": "^1.6.0"
   },
   "dependencies": {
     "jsonwebtoken": "^9.0.3",
