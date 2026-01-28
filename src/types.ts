@@ -20,4 +20,6 @@ export interface OAuth2PluginOptions {
   allowRegistration?: boolean
   cookieSecure?: boolean
   cookieSameSite?: 'Lax' | 'Strict' | 'None'
+  linkByEmail?: boolean
+  requireEmailVerified?: boolean
 }

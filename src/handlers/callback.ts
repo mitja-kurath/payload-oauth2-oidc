@@ -52,16 +52,26 @@ export const handleCallback = async (
     const mappedData = await strategy.userMapper(userinfo)
     const collectionSlug = options.userCollectionSlug || 'users'
     const sub = String(userinfo.sub)
-    let email = typeof userinfo.email === 'string' 
-      ? userinfo.email.toLowerCase().trim() 
-      : `${sub}@oauth.local`
+    const emailRaw = typeof userinfo.email === 'string'
+      ? userinfo.email.toLowerCase().trim()
+      : undefined
+    const emailVerifiedFlag = userinfo.email_verified
+    const emailVerified = emailVerifiedFlag === true || emailVerifiedFlag === 'true'
+    const canLinkByEmail = options.linkByEmail !== false
+      && !!emailRaw
+      && (options.requireEmailVerified ? emailVerified : emailVerifiedFlag !== false && emailVerifiedFlag !== 'false')
+    const email = emailRaw || `${sub}@oauth.local`
+
+    if (emailRaw && options.requireEmailVerified && !emailVerified) {
+      req.payload.logger.warn(`[OAuth2] Email not verified for: ${emailRaw}`)
+    }
 
     const { docs } = await req.payload.find({
       collection: collectionSlug,
       where: {
         or: [
           { 'oauthLinks.sub': { equals: sub } },
-          { email: { equals: email } }
+          ...(canLinkByEmail ? [{ email: { equals: email } }] : []),
         ]
       },
     })

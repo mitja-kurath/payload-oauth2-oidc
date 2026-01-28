@@ -79,6 +79,8 @@ export default buildConfig({
 | `userCollectionSlug`| `string` | The slug of your auth collection. Default: `'users'`. |
 | `cookieSecure` | `boolean` | Override the `Secure` cookie flag. Default: auto based on `serverURL`. |
 | `cookieSameSite` | `'Lax' \| 'Strict' \| 'None'` | Override `SameSite` for auth cookies. Default: `'Lax'`. |
+| `linkByEmail` | `boolean` | Allow linking by matching email. Default: `true`. |
+| `requireEmailVerified` | `boolean` | Require `email_verified` for email linking. Default: `false`. |
 
 ## REST API Endpoints
 
