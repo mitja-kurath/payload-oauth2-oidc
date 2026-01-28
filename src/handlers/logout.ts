@@ -7,11 +7,12 @@ export const handleLogout = (options: OAuth2PluginOptions): Response => {
     headers: { Location: options.logoutRedirect || '/' },
   })
 
-  const secure = isSecureServerUrl(options.serverURL)
+  const secure = options.cookieSecure ?? isSecureServerUrl(options.serverURL)
+  const sameSite = options.cookieSameSite ?? 'Lax'
   response.headers.append('Set-Cookie', deleteCookie('oauth-token', {
     path: '/',
     httpOnly: true,
-    sameSite: 'Lax',
+    sameSite,
     secure,
   }))
   

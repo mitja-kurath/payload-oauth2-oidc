@@ -113,18 +113,19 @@ export const handleCallback = async (
       headers: { Location: options.successRedirect },
     })
 
-    const secure = isSecureServerUrl(options.serverURL)
+    const secure = options.cookieSecure ?? isSecureServerUrl(options.serverURL)
+    const sameSite = options.cookieSameSite ?? 'Lax'
     const tokenCookie = serializeCookie('oauth-token', sessionToken, {
       path: '/',
       httpOnly: true,
-      sameSite: 'Lax',
+      sameSite,
       maxAge: 604800,
       secure,
     })
 
     response.headers.append('Set-Cookie', tokenCookie)
 
-    const shortLivedCookieOptions = { path: '/', httpOnly: true, sameSite: 'Lax' as const, secure }
+    const shortLivedCookieOptions = { path: '/', httpOnly: true, sameSite, secure }
     response.headers.append('Set-Cookie', deleteCookie('oauth_verifier', shortLivedCookieOptions))
     response.headers.append('Set-Cookie', deleteCookie('oauth_state', shortLivedCookieOptions))
 

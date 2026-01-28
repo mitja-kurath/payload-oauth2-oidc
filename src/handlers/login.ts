@@ -21,8 +21,9 @@ export const handleLogin = async (
   })
 
   const response = new Response(null, { status: 302, headers: { Location: authUrl.href } })
-  const secure = isSecureServerUrl(options.serverURL)
-  const cookieOptions = { path: '/', httpOnly: true, maxAge: 600, sameSite: 'Lax' as const, secure }
+  const secure = options.cookieSecure ?? isSecureServerUrl(options.serverURL)
+  const sameSite = options.cookieSameSite ?? 'Lax'
+  const cookieOptions = { path: '/', httpOnly: true, maxAge: 600, sameSite, secure }
   
   response.headers.append('Set-Cookie', serializeCookie('oauth_verifier', verifier, cookieOptions))
   response.headers.append('Set-Cookie', serializeCookie('oauth_state', state, cookieOptions))

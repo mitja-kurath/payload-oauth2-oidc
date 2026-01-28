@@ -17,5 +17,7 @@ export interface OAuth2PluginOptions {
   logoutRedirect?: string
   userCollectionSlug?: string
   enabled?: boolean
-  allowRegistration?: boolean 
+  allowRegistration?: boolean
+  cookieSecure?: boolean
+  cookieSameSite?: 'Lax' | 'Strict' | 'None'
 }

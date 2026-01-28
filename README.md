@@ -77,6 +77,8 @@ export default buildConfig({
 | `logoutRedirect` | `string` | URL to redirect users to after logging out. |
 | `allowRegistration` | `boolean` | If `false`, only users already in the DB can log in. Default: `true`. |
 | `userCollectionSlug`| `string` | The slug of your auth collection. Default: `'users'`. |
+| `cookieSecure` | `boolean` | Override the `Secure` cookie flag. Default: auto based on `serverURL`. |
+| `cookieSameSite` | `'Lax' \| 'Strict' \| 'None'` | Override `SameSite` for auth cookies. Default: `'Lax'`. |
 
 ## REST API Endpoints
 
