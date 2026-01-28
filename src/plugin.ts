@@ -14,6 +14,9 @@ export const oAuth2 = (pluginOptions: OAuth2PluginOptions): Plugin =>
 
     config.collections = (config.collections || []).map((col): CollectionConfig => {
       if (col.slug === collectionSlug) {
+        const hasOauthLinks = (col.fields || []).some(
+          (field) => 'name' in field && field.name === 'oauthLinks',
+        )
         return {
           ...col,
           auth: {
@@ -25,15 +28,17 @@ export const oAuth2 = (pluginOptions: OAuth2PluginOptions): Plugin =>
           },
           fields: [
             ...col.fields,
-            {
-              name: 'oauthLinks',
-              type: 'array',
-              admin: { hidden: true },
-              fields: [
-                { name: 'strategy', type: 'text' },
-                { name: 'sub', type: 'text' },
-              ],
-            },
+            ...(hasOauthLinks ? [] : [
+              {
+                name: 'oauthLinks',
+                type: 'array',
+                admin: { hidden: true },
+                fields: [
+                  { name: 'strategy', type: 'text' },
+                  { name: 'sub', type: 'text' },
+                ],
+              },
+            ]),
           ],
         }
       }
