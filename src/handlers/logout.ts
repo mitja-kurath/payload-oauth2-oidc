@@ -1,4 +1,5 @@
 import { OAuth2PluginOptions } from '../types.js'
+import { deleteCookie, isSecureServerUrl } from './cookies.js'
 
 export const handleLogout = (options: OAuth2PluginOptions): Response => {
   const response = new Response(null, {
@@ -6,7 +7,13 @@ export const handleLogout = (options: OAuth2PluginOptions): Response => {
     headers: { Location: options.logoutRedirect || '/' },
   })
 
-  response.headers.append('Set-Cookie', 'oauth-token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax')
+  const secure = isSecureServerUrl(options.serverURL)
+  response.headers.append('Set-Cookie', deleteCookie('oauth-token', {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'Lax',
+    secure,
+  }))
   
   return response
 }

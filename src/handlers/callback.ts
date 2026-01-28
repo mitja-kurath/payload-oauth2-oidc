@@ -7,6 +7,7 @@ import {
 } from 'openid-client'
 import jwt from 'jsonwebtoken'
 import type { OAuth2PluginOptions, OAuthStrategy } from '../types.js'
+import { deleteCookie, isSecureServerUrl, parseCookies, serializeCookie } from './cookies.js'
 
 export const handleCallback = async (
   req: PayloadRequest,
@@ -20,9 +21,17 @@ export const handleCallback = async (
       strategy.clientSecret
     )
 
-    const cookies = req.headers.get('cookie') || ''
-    const verifier = cookies.match(/oauth_verifier=([^;]+)/)?.[1]
-    const state = cookies.match(/oauth_state=([^;]+)/)?.[1]
+    const cookies = parseCookies(req.headers.get('cookie') || '')
+    const verifier = cookies.oauth_verifier
+    const state = cookies.oauth_state
+
+    if (!verifier || !state) {
+      req.payload.logger.warn('[OAuth2] Missing PKCE verifier or state cookie')
+      return new Response(null, {
+        status: 302,
+        headers: { Location: `${options.failureRedirect}?error=missing_state` },
+      })
+    }
 
     const tokens = await authorizationCodeGrant(config, new URL(req.url!), {
       expectedState: state,
@@ -104,20 +113,20 @@ export const handleCallback = async (
       headers: { Location: options.successRedirect },
     })
 
-    const isLocal = options.serverURL.includes('localhost')
-    const cookieOptions = [
-      `oauth-token=${sessionToken}`,
-      'Path=/',
-      'HttpOnly',
-      'SameSite=Lax',
-      'Max-Age=604800',
-      isLocal ? '' : 'Secure'
-    ].filter(Boolean).join('; ')
+    const secure = isSecureServerUrl(options.serverURL)
+    const tokenCookie = serializeCookie('oauth-token', sessionToken, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+      maxAge: 604800,
+      secure,
+    })
 
-    response.headers.append('Set-Cookie', cookieOptions)
+    response.headers.append('Set-Cookie', tokenCookie)
 
-    response.headers.append('Set-Cookie', 'oauth_verifier=; Path=/; Max-Age=0')
-    response.headers.append('Set-Cookie', 'oauth_state=; Path=/; Max-Age=0')
+    const shortLivedCookieOptions = { path: '/', httpOnly: true, sameSite: 'Lax' as const, secure }
+    response.headers.append('Set-Cookie', deleteCookie('oauth_verifier', shortLivedCookieOptions))
+    response.headers.append('Set-Cookie', deleteCookie('oauth_state', shortLivedCookieOptions))
 
     return response
 

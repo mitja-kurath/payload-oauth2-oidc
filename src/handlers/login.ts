@@ -1,5 +1,6 @@
 import { discovery, buildAuthorizationUrl, randomPKCECodeVerifier, calculatePKCECodeChallenge, randomState } from 'openid-client'
 import type { OAuth2PluginOptions, OAuthStrategy } from '../types.js'
+import { isSecureServerUrl, serializeCookie } from './cookies.js'
 
 export const handleLogin = async (
   strategy: OAuthStrategy,
@@ -20,10 +21,11 @@ export const handleLogin = async (
   })
 
   const response = new Response(null, { status: 302, headers: { Location: authUrl.href } })
-  const cookieBase = 'Path=/; HttpOnly; Max-Age=600; SameSite=Lax'
+  const secure = isSecureServerUrl(options.serverURL)
+  const cookieOptions = { path: '/', httpOnly: true, maxAge: 600, sameSite: 'Lax' as const, secure }
   
-  response.headers.append('Set-Cookie', `oauth_verifier=${verifier}; ${cookieBase}`)
-  response.headers.append('Set-Cookie', `oauth_state=${state}; ${cookieBase}`)
+  response.headers.append('Set-Cookie', serializeCookie('oauth_verifier', verifier, cookieOptions))
+  response.headers.append('Set-Cookie', serializeCookie('oauth_state', state, cookieOptions))
   
   return response
 }
