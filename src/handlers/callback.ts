@@ -3,11 +3,14 @@ import {
   discovery, 
   authorizationCodeGrant, 
   fetchProtectedResource, 
-  randomState 
+  randomState,
+  type DiscoveryConfig
 } from 'openid-client'
 import jwt from 'jsonwebtoken'
 import type { OAuth2PluginOptions, OAuthStrategy } from '../types.js'
 import { deleteCookie, isSecureServerUrl, parseCookies, serializeCookie } from './cookies.js'
+
+const discoveryCache = new Map<string, { config: DiscoveryConfig; expires: number }>()
 
 export const handleCallback = async (
   req: PayloadRequest,
@@ -15,11 +18,20 @@ export const handleCallback = async (
   options: OAuth2PluginOptions,
 ): Promise<Response> => {
   try {
-    const config = await discovery(
-      new URL(strategy.issuerUrl),
-      strategy.clientId,
-      strategy.clientSecret
-    )
+    const cacheKey = strategy.issuerUrl
+    let cached = discoveryCache.get(cacheKey)
+    
+    if (!cached || cached.expires < Date.now()) {
+      const discovered = await discovery(
+        new URL(strategy.issuerUrl),
+        strategy.clientId,
+        strategy.clientSecret
+      )
+      cached = { config: discovered, expires: Date.now() + 1000 * 60 * 60 } // 1 hour
+      discoveryCache.set(cacheKey, cached)
+    }
+
+    const config = cached.config
 
     const cookies = parseCookies(req.headers.get('cookie') || '')
     const verifier = cookies.oauth_verifier
@@ -49,7 +61,10 @@ export const handleCallback = async (
     )
     const userinfo = (await uiRes.json()) as Record<string, unknown>
 
-    const mappedData = await strategy.userMapper(userinfo)
+    const mappedData = strategy.userMapper 
+      ? await strategy.userMapper(userinfo, { req })
+      : {}
+      
     const collectionSlug = options.userCollectionSlug || 'users'
     const sub = String(userinfo.sub)
     const emailRaw = typeof userinfo.email === 'string'
@@ -112,10 +127,15 @@ export const handleCallback = async (
       req.payload.logger.info(`[OAuth2] Profile synced: ${user.email}`)
     }
 
+    if (options.afterLogin) {
+      await options.afterLogin(user, { req, tokens })
+    }
+
+    const tokenExpiration = options.tokenExpiration || 604800 // 7 days
     const sessionToken = jwt.sign(
       { id: String(user.id) }, 
       req.payload.secret, 
-      { expiresIn: '7d' }
+      { expiresIn: tokenExpiration }
     )
 
     const response = new Response(null, {
@@ -125,11 +145,12 @@ export const handleCallback = async (
 
     const secure = options.cookieSecure ?? isSecureServerUrl(options.serverURL)
     const sameSite = options.cookieSameSite ?? 'Lax'
-    const tokenCookie = serializeCookie('oauth-token', sessionToken, {
+    const cookieName = options.cookieName || 'payload-oauth-token'
+    const tokenCookie = serializeCookie(cookieName, sessionToken, {
       path: '/',
       httpOnly: true,
       sameSite,
-      maxAge: 604800,
+      maxAge: tokenExpiration,
       secure,
     })
 

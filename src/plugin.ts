@@ -22,8 +22,8 @@ export const oAuth2 = (pluginOptions: OAuth2PluginOptions): Plugin =>
           type: 'array',
           admin: { hidden: true },
           fields: [
-            { name: 'strategy', type: 'text' },
-            { name: 'sub', type: 'text' },
+            { name: 'strategy', type: 'text', index: true },
+            { name: 'sub', type: 'text', index: true },
           ],
         }
 
@@ -33,7 +33,7 @@ export const oAuth2 = (pluginOptions: OAuth2PluginOptions): Plugin =>
             ...(typeof col.auth === 'object' ? col.auth : {}),
             strategies: [
               ...(typeof col.auth === 'object' && col.auth.strategies ? col.auth.strategies : []),
-              customOAuthStrategy(collectionSlug),
+              customOAuthStrategy(collectionSlug, pluginOptions.cookieName || 'payload-oauth-token'),
             ],
           },
           fields: [

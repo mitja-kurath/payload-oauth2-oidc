@@ -14,16 +14,19 @@ Unlike other plugins that try to "hack" Payload's internal authentication, this 
   - **Registration Control:** Toggle `allowRegistration` to restrict access to pre-existing users only.
   - **Automatic Profile Sync:** Updates user data (roles, names, etc.) in your database on every login.
 - **Smart Account Linking:** Automatically matches OAuth identities to existing Payload accounts via email or Provider ID (`sub`).
-- **Modern Security:** Built-in PKCE (Proof Key for Code Exchange) support and secure, `HttpOnly` cookie session management.
-- **Built-in Logout:** A global logout endpoint that clears session cookies across the application.
+- **Customizable Session:** Configure cookie names, expiration times, and secure options.
+- **After Login Hook:** Execute custom logic after a successful login (e.g., sync with external systems, additional logging).
+- **Authorization Parameters:** Send extra parameters to the OIDC provider (e.g., `prompt`, `access_type`).
+- **Performance Optimized:** Built-in caching for OIDC discovery to reduce latency.
+- **Improved User Mapping:** `userMapper` now receives the `PayloadRequest` for advanced use cases.
 
 ## Installation
 
 ```bash
-pnpm add payload-oauth2-oidc openid-client jsonwebtoken
-# or
-npm install payload-oauth2-oidc openid-client jsonwebtoken
+pnpm add payload-oauth2-oidc
 ```
+
+*(Note: `openid-client` and `jsonwebtoken` are now bundled or handled as dependencies)*
 
 ## Quick Start
 
@@ -51,7 +54,7 @@ export default buildConfig({
           clientSecret: process.env.MIDATA_CLIENT_SECRET!,
           scopes: ['openid', 'email', 'profile', 'with_roles'],
           // Transform OIDC claims to Payload user fields
-          userMapper: async (userinfo) => {
+          userMapper: async (userinfo, { req }) => {
             const roles = (userinfo['roles'] as any[]) || []
             return {
               role: roles.some(r => r.name.includes('Leiter')) ? 'leader' : 'member',
@@ -61,6 +64,9 @@ export default buildConfig({
           },
         },
       ],
+      afterLogin: async (user, { req, tokens }) => {
+        req.payload.logger.info(`User ${user.email} logged in successfully`)
+      }
     }),
   ],
 })
@@ -77,6 +83,9 @@ export default buildConfig({
 | `logoutRedirect` | `string` | URL to redirect users to after logging out. |
 | `allowRegistration` | `boolean` | If `false`, only users already in the DB can log in. Default: `true`. |
 | `userCollectionSlug`| `string` | The slug of your auth collection. Default: `'users'`. |
+| `cookieName` | `string` | Name of the session cookie. Default: `'payload-oauth-token'`. |
+| `tokenExpiration` | `number` | Token expiration in seconds. Default: `604800` (7 days). |
+| `afterLogin` | `Function` | Async hook: `(user, { req, tokens }) => Promise<void>`. |
 | `cookieSecure` | `boolean` | Override the `Secure` cookie flag. Default: auto based on `serverURL`. |
 | `cookieSameSite` | `'Lax' \| 'Strict' \| 'None'` | Override `SameSite` for auth cookies. Default: `'Lax'`. |
 | `linkByEmail` | `boolean` | Allow linking by matching email. Default: `true`. |

@@ -9,7 +9,9 @@ export const handleLogout = (options: OAuth2PluginOptions): Response => {
 
   const secure = options.cookieSecure ?? isSecureServerUrl(options.serverURL)
   const sameSite = options.cookieSameSite ?? 'Lax'
-  response.headers.append('Set-Cookie', deleteCookie('oauth-token', {
+  const cookieName = options.cookieName || 'payload-oauth-token'
+
+  response.headers.append('Set-Cookie', deleteCookie(cookieName, {
     path: '/',
     httpOnly: true,
     sameSite,

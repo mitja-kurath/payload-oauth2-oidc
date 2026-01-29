@@ -1,6 +1,6 @@
 {
   "name": "payload-oauth2-oidc",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Flexible OIDC and OAuth2 integration for Payload CMS v3",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -19,16 +19,16 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean --minify --external payload",
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --minify --external payload --external @payloadcms/*",
     "prepublishOnly": "pnpm build",
     "test": "vitest run"
   },
   "peerDependencies": {
-    "payload": "^3.73.0"
+    "payload": "^3.0.0"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
     "payload": "^3.73.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "tsup": "^8.5.1",
     "typescript": "^5.7.3",
     "vite-tsconfig-paths": "^5.1.0",

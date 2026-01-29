@@ -1,11 +1,11 @@
 import { AuthStrategy } from 'payload'
 import jwt from 'jsonwebtoken'
 
-export const customOAuthStrategy = (collectionSlug: string): AuthStrategy => ({
+export const customOAuthStrategy = (collectionSlug: string, cookieName: string): AuthStrategy => ({
   name: 'custom-oauth-strategy',
   authenticate: async ({ payload, headers }) => {
     const cookies = headers.get('cookie') || ''
-    const token = cookies.match(/oauth-token=([^;]+)/)?.[1]
+    const token = cookies.split('; ').find(row => row.startsWith(`${cookieName}=`))?.split('=')[1]
 
     if (!token) return { user: null }
 
